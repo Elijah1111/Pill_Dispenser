@@ -4,11 +4,11 @@
  * Constants: Created because the actual permanent memory is small
  */
 #include <Wire.h>
-#include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27,16, 1); // set the LCD address to 0x27 for a 16 chars and 2 line display
 #include <SPI.h>
-#include <MFRC522.h>
 #include <Servo.h>
+#include <MFRC522.h> //figure out what these should be later
+#include <LiquidCrystal_12.h> //figure out what these should be later
 
 #define RST_PIN         9          // Configurable, see typical pin layout above
 #define SS_PIN          10         // Configurable, see typical pin layout above
