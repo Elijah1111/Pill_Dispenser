@@ -5,7 +5,7 @@
  */
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-LiquidCrystal_I2C lcd(0x27,16, 1); // set the LCD address to 0x27 for a 16 chars and 2 line display
+
 #include <SPI.h>
 #include <MFRC522.h>
 #include <Servo.h>
@@ -16,14 +16,14 @@ LiquidCrystal_I2C lcd(0x27,16, 1); // set the LCD address to 0x27 for a 16 chars
 MFRC522 reader(SS_PIN, RST_PIN);   // Create MFRC522 instance
 LiquidCrystal_I2C lcd(0x27, 16, 1); // Create LCD display address, columns, rows
 
-string MEDICATION1 = "Mini M&M";
-string MEDICATION2 = "Robin's Egg";
+char MEDICATION1 = "Mini M&M";
+char MEDICATION2 = "Robin's Egg";
 
 int MEDICATION1_TO_DISPENSE = 1;
 int MEDICATION2_TO_DISPENSE = 2;
 
-string USER1_NAME = "Tim";
-string USER2_NAME = "SwagDaddi3000";
+char USER1_NAME = "Tim";
+char USER2_NAME = "SwagDaddi3000";
 
 bool u1_canTakeM1 = true;
 bool u2_canTakeM1 = false;
@@ -45,7 +45,7 @@ Servo servo2;
 int userNum;
 bool known = false, unknown = false;
 short int c = 0;
-
+int  FRONT_BUTTON_PIN = 7;
 void setup(){
   servo1.attach(SERVO_1_PIN);
   servo2.attach(SERVO_2_PIN);
@@ -63,14 +63,14 @@ void setup(){
   pinMode(6, OUTPUT);
 }
 
-void displayMed(string medName){
+void displayMed(char medName){
   lcd.print(medName);
 }
 
-void greetUser(string userName){
+void greetUser(char userName){
   lcd.print("WELCOME:");
   lcd.print(userName);
-  wait(2000); //delay for 2s so user can read
+  delay(2000); //delay for 2s so user can read
   lcd.clear();
 }
 
@@ -82,24 +82,24 @@ void auth(MFRC522 reader) { //authenticate user
   userNum = 2;
 }
 
-bool canTake(int medNum){
+bool canTake(int medNum, int userNum){
   if(userNum == 1){
     if(medNum == 1){
-      if(u1_canTakeMed1){
+      if(u1_canTakeM1){
         return true;
       }
     }else{
-      if(u1_canTakeMed2){
+      if(u1_canTakeM2){
         return true;
       }
     }
   }else{
     if(medNum == 1){
-      if(u2_canTakeMed1){
+      if(u2_canTakeM1){
         return true;
       }
     }else{
-      if(u2_canTakeMed2){
+      if(u2_canTakeM2){
         return true;
       }
     }
@@ -110,25 +110,26 @@ bool canTake(int medNum){
 void dispense(int medNum){
   if(medNum == 1){
     servo1.write(SERVO_ROTATE);
-    wait(100); //wait .1 second
+    delay(100); //wait .1 second
     servo1.write(0-SERVO_ROTATE);
   }else{
     servo2.write(SERVO_ROTATE);
-    wait(100);
+    delay(100);
     servo2.write(0-SERVO_ROTATE);
   }
 }
 
 void dispenseMedicine(int medNum, int userNum){
-  if(canTake(medNum, userNum){
+  if(canTake(medNum, userNum)){
     lcd.clear();
     lcd.print("Dispensing...");
     dispense(medNum);
     lcd.clear();
-  }else{
+  }
+  else{
     lcd.clear();
     lcd.print("You cannot take that now.");
-    wait(2000); //pause for 2 seconds
+    delay(2000); //pause for 2 seconds
     lcd.clear();
   }
 }
@@ -153,7 +154,7 @@ void loop() {
     if ( ! reader.PICC_ReadCardSerial()) {// Cant read
       return;
     }
-    auth(reader) 
+    auth(reader);
     if (userNum = 1) { //checks which user swiped
       Serial.println("TRUE");
       lcd.clear();
