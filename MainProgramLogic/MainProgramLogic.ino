@@ -1,5 +1,7 @@
 
 
+
+
 /*
    Constants: Created because the actual permanent memory is small
 */
@@ -7,7 +9,7 @@
 #include <SPI.h>
 #include <Servo.h>
 #include <MFRC522.h> //figure out what these should be later
-#include <LiquidCrystal_12.h> //figure out what these should be later
+#include <LiquidCrystal_I2C.h>
 
 #define RST_PIN         9          // Configurable, see typical pin layout above
 #define SS_PIN          10         // Configurable, see typical pin layout above
@@ -32,24 +34,26 @@ bool u2_canTakeM2 = true;
 int SERVO_ROTATE = 90;
 int SERVO_1_PIN = 5;
 int SERVO_2_PIN = 6;
-int BACK_BUTTON_PIN = 4;
+int BACK_BUTTON_PIN = 2;
 int FORWARD_BUTTON_PIN = 3;
-int SELECT_BUTTON_PIN = 2;
+int SELECT_BUTTON_PIN = 4;
 int backButton = 0;
 int frontButton = 0;
 int selectButton = 0;
 
 Servo servo1;
 Servo servo2;
-int userNum;
+int userNum = -1;
 bool known = false, unknown = false;
 short int c = 0;
-int  FRONT_BUTTON_PIN = 7;
+
+
 void setup() {
   servo1.attach(SERVO_1_PIN);
   servo2.attach(SERVO_2_PIN);
+  servo2.write(0);
   pinMode(BACK_BUTTON_PIN, INPUT);
-  pinMode(FRONT_BUTTON_PIN, INPUT);
+  pinMode(FORWARD_BUTTON_PIN, INPUT);
   pinMode(SELECT_BUTTON_PIN, INPUT);
   lcd.init();
   lcd.backlight();
@@ -58,17 +62,15 @@ void setup() {
   reader.PCD_Init();   // Init Card Reader
   reader.PCD_DumpVersionToSerial();  // Show details of PCD - MFRC522 Card Reader details
   lcd.print("Please Scan Card");
-  pinMode(7, OUTPUT);
-  pinMode(6, OUTPUT);
 }
 
 void displayMed(char medName) {
-  lcd.print(medName);
+  lcd.print("MEDHERE");
 }
 
 void greetUser(char userName) {
-  lcd.print("WELCOME:");
-  lcd.print(userName);
+  char line = "WELCOME:" + userName;
+  lcd.print("WELCOMEHERE");
   delay(2000); //delay for 2s so user can read
   lcd.clear();
 }
@@ -79,12 +81,16 @@ void auth(MFRC522 reader) { //authenticate user
   if (reader.uid.uidByte[0] == user1[0] && reader.uid.uidByte[1] == user1[1] && reader.uid.uidByte[2] == user1[2] && reader.uid.uidByte[3] == user1[3]) {
     userNum = 1;
   }
-  if (reader.uid.uidByte[0] == user2[0] && reader.uid.uidByte[1] == user2[1] && reader.uid.uidByte[2] == user2[2] && reader.uid.uidByte[3] == user2[3]) {
+  else if (reader.uid.uidByte[0] == user2[0] && reader.uid.uidByte[1] == user2[1] && reader.uid.uidByte[2] == user2[2] && reader.uid.uidByte[3] == user2[3]) {
     userNum = 2;
+  }
+  else{
+    userNum = -1;
   }
 }
 
 bool canTake(int medNum, int userNum) {
+  Serial.println("CHECKTAKE");
   if (userNum == 1) {
     if (medNum == 1) {
       if (u1_canTakeM1) {
@@ -110,14 +116,15 @@ bool canTake(int medNum, int userNum) {
 }
 
 void dispense(int medNum) {
+  Serial.println("DISPENSEWEEIHBUAHBAUHBD AEEDHB G");
   if (medNum == 1) {
-    servo1.write(SERVO_ROTATE);
-    delay(100); //wait .1 second
-    servo1.write(0 - SERVO_ROTATE);
+    servo1.write(0);
+    delay(800); //wait .8 second
+    servo1.write(90);
   } else {
     servo2.write(SERVO_ROTATE);
-    delay(100);
-    servo2.write(0 - SERVO_ROTATE);
+    delay(1000);
+    servo2.write(0);
   }
 }
 
@@ -126,29 +133,29 @@ void dispenseMedicine(int medNum, int userNum) {
     lcd.clear();
     lcd.print("Dispensing...");
     dispense(medNum);
-    lcd.clear();
+    //lcd.clear();
   }
   else {
     lcd.clear();
     lcd.print("You cannot take that now.");
     delay(2000); //pause for 2 seconds
-    lcd.clear();
+    //lcd.clear();
   }
 }
 
-bool pressed = true;
+bool pressed = false;
+int medNum = 0;
 
 void loop() {
-  if (userNum == 0) {
-    c++;
-    if (c >= 500) { // a time out event
+  c++;
+  if (c >= 100000) { // a time out event
       c = 0;
-      digitalWrite(7, LOW);
-      digitalWrite(6, LOW);
+      userNum = -1;
+      pressed = false;
       lcd.clear();
       lcd.print("Please Scan Card");
-      return;
     }
+  if (userNum == -1) {
     if ( ! reader.PICC_IsNewCardPresent()) {// Look for new cards
       return;
     }
@@ -156,24 +163,24 @@ void loop() {
     if ( ! reader.PICC_ReadCardSerial()) {// Cant read
       return;
     }
+      //reader.PICC_DumpToSerial(&(reader.uid));
+      
     auth(reader);
     if (userNum = 1) { //checks which user swiped
       Serial.println("TRUE");
       lcd.clear();
-      greetUser(USER1_NAME);
-      digitalWrite(7, HIGH);
-      digitalWrite(6, LOW);
+      lcd.print("Hello: Tim");
       c = 0;
-    } else {
-      Serial.println("FALSE");
+    } else if(userNum = 2) {
+      Serial.println("User2");
       lcd.clear();
-      greetUser(USER2_NAME);
-      digitalWrite(6, HIGH);
-      digitalWrite(7, LOW);
+      lcd.print("Hello:SwagDaddi3000");
       c = 0;
     }
-  } else {
-    if (pressed) {
+    
+  }
+  else {
+    if (!pressed) {
       lcd.write("<- Select Med ->");
       if (medNum == 1) {
         lcd.write(MEDICATION1);
@@ -181,23 +188,20 @@ void loop() {
         lcd.write(MEDICATION2);
       }
     }
+    
     backButton = digitalRead(BACK_BUTTON_PIN);
-    frontButton = digitalRead(FRONT_BUTTON_PIN);
+    frontButton = digitalRead(FORWARD_BUTTON_PIN);
     selectButton = digitalRead(SELECT_BUTTON_PIN);
-    if (selectButton == HIGH) {
-      dispenseMedication(medNum);
-      userNum = 0;
-      pressed = true;
-    } else if (frontButton == HIGH) {
+    
+    if (frontButton == HIGH) {
       medNum = 2;
+      dispenseMedicine(userNum,medNum);
       pressed = true;
+      lcd.clear();
     } else if (backButton == HIGH) {
       medNum = 1;
+      dispenseMedicine(userNum,medNum);
       pressed = true;
-    } else {
-      pressed = false;
-    }
-    if (pressed) {
       lcd.clear();
     }
   }
