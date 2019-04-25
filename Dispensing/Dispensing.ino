@@ -57,7 +57,7 @@ void loop() {
     return;
   }
 
-  if (auth(reader) {
+  if (auth(reader)) {
   if (!known) { //checks to see if the input id is the stored user
       Serial.println("TRUE");
       lcd.clear();
