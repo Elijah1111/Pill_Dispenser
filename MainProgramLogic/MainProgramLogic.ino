@@ -1,8 +1,8 @@
 
 
 /*
- * Constants: Created because the actual permanent memory is small
- */
+   Constants: Created because the actual permanent memory is small
+*/
 #include <Wire.h>
 #include <SPI.h>
 #include <Servo.h>
@@ -30,11 +30,11 @@ bool u1_canTakeM2 = true;
 bool u2_canTakeM2 = true;
 
 int SERVO_ROTATE = 90;
-int SERVO_1_PIN;
-int SERVO_2_PIN;
-int BACK_BUTTON_PIN;
-int FORWARD_BUTTON_PIN;
-int SELECT_BUTTON_PIN;
+int SERVO_1_PIN = 5;
+int SERVO_2_PIN = 6;
+int BACK_BUTTON_PIN = 4;
+int FORWARD_BUTTON_PIN = 3;
+int SELECT_BUTTON_PIN = 2;
 int backButton = 0;
 int frontButton = 0;
 int selectButton = 0;
@@ -45,13 +45,13 @@ int userNum;
 bool known = false, unknown = false;
 short int c = 0;
 int  FRONT_BUTTON_PIN = 7;
-void setup(){
+void setup() {
   servo1.attach(SERVO_1_PIN);
   servo2.attach(SERVO_2_PIN);
   pinMode(BACK_BUTTON_PIN, INPUT);
   pinMode(FRONT_BUTTON_PIN, INPUT);
   pinMode(SELECT_BUTTON_PIN, INPUT);
-  lcd.init(); 
+  lcd.init();
   lcd.backlight();
   Serial.begin(9600);   // Initialize serial communications with the PC
   SPI.begin();      // Init SPI bus
@@ -62,11 +62,11 @@ void setup(){
   pinMode(6, OUTPUT);
 }
 
-void displayMed(char medName){
+void displayMed(char medName) {
   lcd.print(medName);
 }
 
-void greetUser(char userName){
+void greetUser(char userName) {
   lcd.print("WELCOME:");
   lcd.print(userName);
   delay(2000); //delay for 2s so user can read
@@ -74,31 +74,34 @@ void greetUser(char userName){
 }
 
 void auth(MFRC522 reader) { //authenticate user
-  byte master[4] = {0x29, 0xFB, 0x56, 0xD3};//The hexidecimal UID
-  if (reader.uid.uidByte[0] == master[0] && reader.uid.uidByte[1] == master[1] && reader.uid.uidByte[2] == master[2] && reader.uid.uidByte[3] == master[3]) {
+  byte user1[4] = {0x29, 0xFB, 0x56, 0xD3};//The hexidecimal UID
+  byte user2[4] = {0x76, 0x50, 0xB8, 0x1A};
+  if (reader.uid.uidByte[0] == user1[0] && reader.uid.uidByte[1] == user1[1] && reader.uid.uidByte[2] == user1[2] && reader.uid.uidByte[3] == user1[3]) {
     userNum = 1;
   }
-  userNum = 2;
+  if (reader.uid.uidByte[0] == user2[0] && reader.uid.uidByte[1] == user2[1] && reader.uid.uidByte[2] == user2[2] && reader.uid.uidByte[3] == user2[3]) {
+    userNum = 2;
+  }
 }
 
-bool canTake(int medNum, int userNum){
-  if(userNum == 1){
-    if(medNum == 1){
-      if(u1_canTakeM1){
+bool canTake(int medNum, int userNum) {
+  if (userNum == 1) {
+    if (medNum == 1) {
+      if (u1_canTakeM1) {
         return true;
       }
-    }else{
-      if(u1_canTakeM2){
+    } else {
+      if (u1_canTakeM2) {
         return true;
       }
     }
-  }else{
-    if(medNum == 1){
-      if(u2_canTakeM1){
+  } else {
+    if (medNum == 1) {
+      if (u2_canTakeM1) {
         return true;
       }
-    }else{
-      if(u2_canTakeM2){
+    } else {
+      if (u2_canTakeM2) {
         return true;
       }
     }
@@ -106,26 +109,26 @@ bool canTake(int medNum, int userNum){
   return false;
 }
 
-void dispense(int medNum){
-  if(medNum == 1){
+void dispense(int medNum) {
+  if (medNum == 1) {
     servo1.write(SERVO_ROTATE);
     delay(100); //wait .1 second
-    servo1.write(0-SERVO_ROTATE);
-  }else{
+    servo1.write(0 - SERVO_ROTATE);
+  } else {
     servo2.write(SERVO_ROTATE);
     delay(100);
-    servo2.write(0-SERVO_ROTATE);
+    servo2.write(0 - SERVO_ROTATE);
   }
 }
 
-void dispenseMedicine(int medNum, int userNum){
-  if(canTake(medNum, userNum)){
+void dispenseMedicine(int medNum, int userNum) {
+  if (canTake(medNum, userNum)) {
     lcd.clear();
     lcd.print("Dispensing...");
     dispense(medNum);
     lcd.clear();
   }
-  else{
+  else {
     lcd.clear();
     lcd.print("You cannot take that now.");
     delay(2000); //pause for 2 seconds
@@ -136,7 +139,7 @@ void dispenseMedicine(int medNum, int userNum){
 bool pressed = true;
 
 void loop() {
-  if(userNum == 0){
+  if (userNum == 0) {
     c++;
     if (c >= 500) { // a time out event
       c = 0;
@@ -161,40 +164,40 @@ void loop() {
       digitalWrite(7, HIGH);
       digitalWrite(6, LOW);
       c = 0;
-    }else{
+    } else {
       Serial.println("FALSE");
       lcd.clear();
       greetUser(USER2_NAME);
       digitalWrite(6, HIGH);
       digitalWrite(7, LOW);
       c = 0;
-     }
-  }else{
-    if(pressed){
+    }
+  } else {
+    if (pressed) {
       lcd.write("<- Select Med ->");
-      if(medNum == 1){
+      if (medNum == 1) {
         lcd.write(MEDICATION1);
-      }else if(medNum == 2){
+      } else if (medNum == 2) {
         lcd.write(MEDICATION2);
       }
     }
     backButton = digitalRead(BACK_BUTTON_PIN);
     frontButton = digitalRead(FRONT_BUTTON_PIN);
     selectButton = digitalRead(SELECT_BUTTON_PIN);
-    if(selectButton == HIGH){
+    if (selectButton == HIGH) {
       dispenseMedication(medNum);
       userNum = 0;
       pressed = true;
-    }else if(frontButton == HIGH){
+    } else if (frontButton == HIGH) {
       medNum = 2;
       pressed = true;
-    }else if(backButton == HIGH){
+    } else if (backButton == HIGH) {
       medNum = 1;
       pressed = true;
-    }else{
+    } else {
       pressed = false;
     }
-    if(pressed){
+    if (pressed) {
       lcd.clear();
     }
   }
