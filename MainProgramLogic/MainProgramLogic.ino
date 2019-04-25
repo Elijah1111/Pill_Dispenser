@@ -45,12 +45,13 @@ Servo servo1;
 Servo servo2;
 int userNum = -1;
 bool known = false, unknown = false;
-short int c = 0;
+
 
 
 void setup() {
   servo1.attach(SERVO_1_PIN);
   servo2.attach(SERVO_2_PIN);
+  servo1.write(170);
   servo2.write(0);
   pinMode(BACK_BUTTON_PIN, INPUT);
   pinMode(FORWARD_BUTTON_PIN, INPUT);
@@ -64,49 +65,40 @@ void setup() {
   lcd.print("Please Scan Card");
 }
 
-void displayMed(char medName) {
-  lcd.print("MEDHERE");
-}
-
-void greetUser(char userName) {
-  char line = "WELCOME:" + userName;
-  lcd.print("WELCOMEHERE");
-  delay(2000); //delay for 2s so user can read
-  lcd.clear();
-}
-
 void auth(MFRC522 reader) { //authenticate user
   byte user1[4] = {0x29, 0xFB, 0x56, 0xD3};//The hexidecimal UID
   byte user2[4] = {0x76, 0x50, 0xB8, 0x1A};
+  //reader.PICC_DumpToSerial(&(reader.uid));
   if (reader.uid.uidByte[0] == user1[0] && reader.uid.uidByte[1] == user1[1] && reader.uid.uidByte[2] == user1[2] && reader.uid.uidByte[3] == user1[3]) {
+    Serial.println("USER1");
     userNum = 1;
   }
   else if (reader.uid.uidByte[0] == user2[0] && reader.uid.uidByte[1] == user2[1] && reader.uid.uidByte[2] == user2[2] && reader.uid.uidByte[3] == user2[3]) {
+    Serial.println("USER2");
     userNum = 2;
   }
-  else{
+  else {
     userNum = -1;
   }
 }
 
 bool canTake(int medNum, int userNum) {
-  Serial.println("CHECKTAKE");
   if (userNum == 1) {
     if (medNum == 1) {
       if (u1_canTakeM1) {
         return true;
       }
-    } else {
+    } else if(medNum == 2){
       if (u1_canTakeM2) {
         return true;
       }
     }
-  } else {
+  } else if(userNum == 2){
     if (medNum == 1) {
       if (u2_canTakeM1) {
         return true;
       }
-    } else {
+    } else if(medNum == 2){
       if (u2_canTakeM2) {
         return true;
       }
@@ -116,12 +108,11 @@ bool canTake(int medNum, int userNum) {
 }
 
 void dispense(int medNum) {
-  Serial.println("DISPENSEWEEIHBUAHBAUHBD AEEDHB G");
   if (medNum == 1) {
     servo1.write(0);
-    delay(800); //wait .8 second
-    servo1.write(90);
-  } else {
+    delay(1000); //wait 1 second
+    servo1.write(170);
+  } else if (medNum == 2) {
     servo2.write(SERVO_ROTATE);
     delay(1000);
     servo2.write(0);
@@ -132,29 +123,32 @@ void dispenseMedicine(int medNum, int userNum) {
   if (canTake(medNum, userNum)) {
     lcd.clear();
     lcd.print("Dispensing...");
+    Serial.println(medNum);
     dispense(medNum);
-    //lcd.clear();
   }
   else {
     lcd.clear();
     lcd.print("You cannot take that now.");
     delay(2000); //pause for 2 seconds
-    //lcd.clear();
   }
 }
 
 bool pressed = false;
 int medNum = 0;
+bool flag = false;
+long int c = 0;
 
 void loop() {
   c++;
-  if (c >= 100000) { // a time out event
-      c = 0;
-      userNum = -1;
-      pressed = false;
-      lcd.clear();
-      lcd.print("Please Scan Card");
-    }
+  if (c >= 10000) { // a time out event
+    c = 0;
+    userNum = -1;
+    medNum = 0;
+    pressed = false;
+    flag = false;
+    lcd.clear();
+    lcd.print("Please Scan Card");
+  }
   if (userNum == -1) {
     if ( ! reader.PICC_IsNewCardPresent()) {// Look for new cards
       return;
@@ -163,46 +157,76 @@ void loop() {
     if ( ! reader.PICC_ReadCardSerial()) {// Cant read
       return;
     }
-      //reader.PICC_DumpToSerial(&(reader.uid));
-      
+    //reader.PICC_DumpToSerial(&(reader.uid));
+
     auth(reader);
-    if (userNum = 1) { //checks which user swiped
+    if (userNum == 1) { //checks which user swiped
       Serial.println("TRUE");
+      if(!flag){
       lcd.clear();
       lcd.print("Hello: Tim");
+      delay(1500);
       c = 0;
-    } else if(userNum = 2) {
+      flag = true;
+      }
+    } else if (userNum == 2) {
       Serial.println("User2");
+      if(!flag){
       lcd.clear();
       lcd.print("Hello:SwagDaddi3000");
+      delay(1500);
       c = 0;
-    }
-    
-  }
-  else {
-    if (!pressed) {
-      lcd.write("<- Select Med ->");
-      if (medNum == 1) {
-        lcd.write(MEDICATION1);
-      } else if (medNum == 2) {
-        lcd.write(MEDICATION2);
+      flag = true;
       }
     }
-    
+
+  }
+  else {
+    if (!pressed && medNum == 0) {
+      medNum = -1;
+      lcd.clear();
+      lcd.print("<- Select Med ->");
+    }
+    else {
+      if (medNum == 1) {
+        if(flag){
+        lcd.clear();
+        lcd.print("Mini M&M");
+        flag = false;
+        }
+      } else if (medNum == 2) {
+        if(flag){
+        lcd.clear();
+        lcd.print("Robin's Egg");
+        flag = false;
+        }
+      }
+    }
+
     backButton = digitalRead(BACK_BUTTON_PIN);
     frontButton = digitalRead(FORWARD_BUTTON_PIN);
     selectButton = digitalRead(SELECT_BUTTON_PIN);
-    
+
     if (frontButton == HIGH) {
       medNum = 2;
-      dispenseMedicine(userNum,medNum);
+      c = 0;
+      dispenseMedicine(medNum, userNum);
+      delay(200);
       pressed = true;
-      lcd.clear();
+      flag = true;
     } else if (backButton == HIGH) {
       medNum = 1;
-      dispenseMedicine(userNum,medNum);
+      c = 0;
+      dispenseMedicine(medNum, userNum);
+      delay(200);
       pressed = true;
-      lcd.clear();
+      flag = true;
+    }
+    else if(selectButton == HIGH){//reset button
+      Serial.println("RESET");
+      c = 10000;
     }
   }
+  Serial.println(c);//slows down the cycle for the timeout
+  
 }
