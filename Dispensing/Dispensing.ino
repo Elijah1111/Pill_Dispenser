@@ -31,8 +31,6 @@ void setup() {
   reader.PCD_Init();   // Init Card Reader
   reader.PCD_DumpVersionToSerial();  // Show details of PCD - MFRC522 Card Reader details
   lcd.print("Please Scan Card");
-  pinMode(7, OUTPUT);
-  pinMode(6, OUTPUT);
 }
 bool known = false, unknown = false;
 short int c = 0;
@@ -62,8 +60,6 @@ void loop() {
       Serial.println("TRUE");
       lcd.clear();
       lcd.print("WELCOME: M Bison");
-      digitalWrite(7, HIGH);
-      digitalWrite(6, LOW);
       known = true;
       unknown = false;
       c = 0;
@@ -73,8 +69,6 @@ void loop() {
   Serial.println("FALSE");
     lcd.clear();
     lcd.print("ACCESS DENIED");
-    digitalWrite(6, HIGH);
-    digitalWrite(7, LOW);
     unknown = true;
     known = false;
     c = 0;
